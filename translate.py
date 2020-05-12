@@ -63,13 +63,13 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-load_weights', required=True)
-    parser.add_argument('-k', type=int, default=3)
-    parser.add_argument('-max_len', type=int, default=80)
+    parser.add_argument('-k', type=int, default=1)
+    parser.add_argument('-max_len', type=int, default=3)
     parser.add_argument('-d_model', type=int, default=512)
     parser.add_argument('-n_layers', type=int, default=6)
     parser.add_argument('-src_lang', default='en')
-    parser.add_argument('-trg_lang', default='fr')
-    parser.add_argument('-heads', type=int, default=8)
+    parser.add_argument('-trg_lang', default='en')
+    parser.add_argument('-heads', type=int, default=1)
     parser.add_argument('-dropout', type=int, default=0.1)
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-floyd', action='store_true')
@@ -80,7 +80,6 @@ def main():
     opt.device = 0 if opt.no_cuda is False else -1
  
     assert opt.k > 0
-    assert opt.max_len > 10
 
     SRC, TRG = create_fields(opt)
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))

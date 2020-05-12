@@ -85,7 +85,7 @@ def beam_search(src, model, SRC, TRG, opt):
             _, ind = torch.max(log_scores * div, 1)
             ind = ind.data[0]
             break
-    
+
     if ind is None:
         length = (outputs[0]==eos_tok).nonzero()[0]
         return ' '.join([TRG.vocab.itos[tok] for tok in outputs[0][1:length]])

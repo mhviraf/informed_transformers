@@ -16,11 +16,8 @@ def train_model(model, opt):
     start = time.time()
     if opt.checkpoint > 0:
         cptime = time.time()
-    epoch_nums = []
-    align_losses = []
-    lexical_losses = []           
+       
     for epoch in range(opt.epochs):
-
         total_loss = 0
         if opt.floyd is False:
             print("   %dm: epoch %d [%s]  %d%%  loss = %s" %\
@@ -35,15 +32,10 @@ def train_model(model, opt):
             trg = batch.trg.transpose(0,1).to(device=opt.device)
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, opt)
-            preds, _ = model(src, trg_input, src_mask, trg_mask)
+            preds = model(src, trg_input, src_mask, trg_mask)
             ys = trg[:, 1:].contiguous().view(-1)
             opt.optimizer.zero_grad()
-            lexical_loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=opt.trg_pad)
-
-            epoch_nums.append(epoch)
-            lexical_losses.append(lexical_loss)
-
-            loss = lexical_loss
+            loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=opt.trg_pad)
 
             loss.backward()
             opt.optimizer.step()
@@ -70,9 +62,6 @@ def train_model(model, opt):
         print("%dm: epoch %d [%s%s]  %d%%  loss = %.3f\nepoch %d complete, loss = %.03f" %\
         ((time.time() - start)//60, epoch + 1, "".join('#'*(100//5)), "".join(' '*(20-(100//5))), 100, avg_loss, epoch + 1, avg_loss))
     
-    loss_history = torch.FloatTensor([epoch_nums, align_losses, lexical_losses]).t()
-    torch.save(loss_history, 'loss_history.pt')
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -91,7 +80,7 @@ def main():
     parser.add_argument('-lr', type=int, default=0.001)
     parser.add_argument('-load_weights')
     parser.add_argument('-create_valset', action='store_true')
-    parser.add_argument('-max_strlen', type=int, default=80)
+    parser.add_argument('-max_strlen', type=int, default=192)
     parser.add_argument('-floyd', action='store_true')
     parser.add_argument('-checkpoint', type=int, default=0)
     parser.add_argument('-savetokens', type=int, default=0)

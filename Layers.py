@@ -5,7 +5,6 @@ import pickle
 import numpy as np
 
 from Sublayers import FeedForward, MultiHeadAttention, Norm
-from alphas_matrix_multiplication import get_alpha_matrix
 
 def get_one_hot_vectors(input_sequence, y_t):
   """This function takes in input sequence and target at time step t
@@ -70,7 +69,7 @@ class DecoderLayer(nn.Module):
 
         self.dictionary = dictionary
 
-    def forward(self, x, e_outputs, src_mask, trg_mask, src_tokens, target_token):
+    def forward(self, x, e_outputs, src_mask, trg_mask):
         # decoder attention block
         x2 = self.norm_1(x)
         x = x + self.dropout_1(self.attn_1(x2, x2, x2, trg_mask))
