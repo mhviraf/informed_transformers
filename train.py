@@ -35,20 +35,15 @@ def train_model(model, opt):
             trg = batch.trg.transpose(0,1).to(device=opt.device)
             trg_input = trg[:, :-1]
             src_mask, trg_mask = create_masks(src, trg_input, opt)
-            preds, align_loss = model(src, trg_input, src_mask, trg_mask)
+            preds, _ = model(src, trg_input, src_mask, trg_mask)
             ys = trg[:, 1:].contiguous().view(-1)
             opt.optimizer.zero_grad()
             lexical_loss = F.cross_entropy(preds.view(-1, preds.size(-1)), ys, ignore_index=opt.trg_pad)
 
             epoch_nums.append(epoch)
-            align_losses.append(align_loss)
             lexical_losses.append(lexical_loss)
 
-
-
-            # Eq. 5 of paper
-            lambda_ = 0.3
-            loss = lexical_loss + lambda_*align_loss
+            loss = lexical_loss
 
             loss.backward()
             opt.optimizer.step()
@@ -72,7 +67,6 @@ def train_model(model, opt):
                 torch.save(model.state_dict(), 'weights/model_weights')
                 cptime = time.time()
    
-   
         print("%dm: epoch %d [%s%s]  %d%%  loss = %.3f\nepoch %d complete, loss = %.03f" %\
         ((time.time() - start)//60, epoch + 1, "".join('#'*(100//5)), "".join(' '*(20-(100//5))), 100, avg_loss, epoch + 1, avg_loss))
     
@@ -81,22 +75,20 @@ def train_model(model, opt):
 
 
 def main():
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-src_data', required=True)
-    parser.add_argument('-trg_data', required=True)
-    parser.add_argument('-src_lang', required=True)
-    parser.add_argument('-trg_lang', required=True)
+    parser.add_argument('-fold', default=0)
+    parser.add_argument('-src_lang', default='en')
+    parser.add_argument('-trg_lang', default='en')
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-SGDR', action='store_true')
     parser.add_argument('-epochs', type=int, default=2)
     parser.add_argument('-d_model', type=int, default=512)
     parser.add_argument('-n_layers', type=int, default=6)
-    parser.add_argument('-heads', type=int, default=8)
+    parser.add_argument('-heads', type=int, default=1)
     parser.add_argument('-dropout', type=int, default=0.1)
     parser.add_argument('-batchsize', type=int, default=1500)
     parser.add_argument('-printevery', type=int, default=100)
-    parser.add_argument('-lr', type=int, default=0.0001)
+    parser.add_argument('-lr', type=int, default=0.001)
     parser.add_argument('-load_weights')
     parser.add_argument('-create_valset', action='store_true')
     parser.add_argument('-max_strlen', type=int, default=80)
@@ -112,17 +104,7 @@ def main():
     read_data(opt)
     SRC, TRG = create_fields(opt)
 
-
-
     opt.train = create_dataset(opt, SRC, TRG)
-
-    # # convert translation dictionary to tokens ditionary
-    # translation_dictionar = pickle.load(open('data/translation_dictionary.p', 'rb'))
-    # new_dict = {}
-    # for en_word, fr_word in translation_dictionar.items():
-    #     new_dict[SRC.vocab.stoi[en_word]] = TRG.vocab.stoi[fr_word.lower()]
-    
-    # pickle.dump(new_dict, open('data/tokenized_translation_dictionary.p', 'wb'))
 
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
     model = model.to(device=opt.device)

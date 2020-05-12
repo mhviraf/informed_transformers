@@ -76,27 +76,24 @@ class DecoderLayer(nn.Module):
         x = x + self.dropout_1(self.attn_1(x2, x2, x2, trg_mask))
         x2 = self.norm_2(x)
 
-        # beta's
-        betas = torch.bmm(e_outputs, torch.transpose(x2, 1, 2)) / torch.sqrt(torch.tensor(x.shape[-1], dtype=torch.float))
-        # (batch_size, src_seq_len, trg_seq_len)
-        betas = F.softmax(betas, dim=1) # beta-softmax of one sample
+        # # beta's
+        # betas = torch.bmm(e_outputs, torch.transpose(x2, 1, 2)) / torch.sqrt(torch.tensor(x.shape[-1], dtype=torch.float))
+        # # (batch_size, src_seq_len, trg_seq_len)
+        # betas = F.softmax(betas, dim=1) # beta-softmax of one sample
 
-        batch_loss = 0 # holds loss over one batch
-        for i in range(betas.shape[0]): # loop over samples in a batch
-            # betas_s = torch.div(betas[i], np.sqrt(x.shape[-1])) # compute beta for one sample
-            betas_s = betas[i]
+        # batch_loss = 0 # holds loss over one batch
+        # for i in range(betas.shape[0]): # loop over samples in a batch
+        #     # betas_s = torch.div(betas[i], np.sqrt(x.shape[-1])) # compute beta for one sample
+        #     betas_s = betas[i]
 
-            alphas_s = get_alpha_matrix(src_tokens[i], target_token[i], self.dictionary)
-            sum_alpha = torch.sum(alphas_s, dim=0)
-            alpha_beta = betas_s * alphas_s
-            sum_ab = torch.sum(alpha_beta[:, torch.nonzero(sum_alpha).squeeze(1)], dim=0)
-            loss_align = torch.sum(-torch.log(sum_ab)) # holds loss of one sample
-
-            batch_loss += loss_align
+        #     alphas_s = get_alpha_matrix(src_tokens[i], target_token[i], self.dictionary)
+        #     sum_alpha = torch.sum(alphas_s, dim=0)
+        #     alpha_beta = betas_s * alphas_s
+        #     sum_ab = torch.sum(alpha_beta[:, torch.nonzero(sum_alpha).squeeze(1)], dim=0)
 
         # encoder-decoder attention block
         x = x + self.dropout_2(self.attn_2(x2, e_outputs, e_outputs, \
         src_mask))
         x2 = self.norm_3(x)
         x = x + self.dropout_3(self.ff(x2))
-        return x, batch_loss
+        return x

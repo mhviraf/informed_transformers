@@ -7,24 +7,23 @@ import os
 import dill as pickle
 
 def read_data(opt):
+    data = pd.read_csv('data/train_folds.csv')
+
+    try:
+        opt.src_data = data.loc[data['kfold'] != opt.fold, 'text'].values
+    except:
+        print("error: loading data")
+        quit()
     
-    if opt.src_data is not None:
-        try:
-            opt.src_data = open(opt.src_data).read().strip().split('\n')
-        except:
-            print("error: '" + opt.src_data + "' file not found")
-            quit()
-    
-    if opt.trg_data is not None:
-        try:
-            opt.trg_data = open(opt.trg_data).read().strip().split('\n')
-        except:
-            print("error: '" + opt.trg_data + "' file not found")
-            quit()
+    try:
+        opt.trg_data = data.loc[data['kfold'] != opt.fold, 'sentiment'].values
+    except:
+        print("error: loading target")
+        quit()
 
 def create_fields(opt):
     
-    spacy_langs = ['en', 'fr', 'de', 'es', 'pt', 'it', 'nl']
+    spacy_langs = ['en']
     if opt.src_lang not in spacy_langs:
         print('invalid src language: ' + opt.src_lang + 'supported languages : ' + spacy_langs)  
     if opt.trg_lang not in spacy_langs:
