@@ -72,7 +72,7 @@ def main():
     parser.add_argument('-SGDR', action='store_true')
     parser.add_argument('-epochs', type=int, default=2)
     parser.add_argument('-d_model', type=int, default=512)
-    parser.add_argument('-n_layers', type=int, default=6)
+    parser.add_argument('-n_layers', type=int, default=1)
     parser.add_argument('-heads', type=int, default=1)
     parser.add_argument('-dropout', type=int, default=0.1)
     parser.add_argument('-batchsize', type=int, default=1500)
@@ -95,7 +95,7 @@ def main():
 
     opt.train = create_dataset(opt, SRC, TRG)
 
-    model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
+    model = get_model(opt, len(SRC.vocab), len(TRG.vocab), model_type='train')
     model = model.to(device=opt.device)
 
     if opt.savetokens == 1:
@@ -114,76 +114,18 @@ def main():
         pickle.dump(SRC, open('weights/SRC.pkl', 'wb'))
         pickle.dump(TRG, open('weights/TRG.pkl', 'wb'))
     
+    # train model
     train_model(model, opt)
 
-    if opt.floyd is False:
-        promptNextAction(model, opt, SRC, TRG)
+    # save weights
+    dst = '../gdrive/My Drive/tweet-sentiment-extraction'
+    print("saving weights to " + dst + "/...")
+    torch.save(model.state_dict(), f'{dst}/model_weights')
+    pickle.dump(SRC, open(f'{dst}/SRC.pkl', 'wb'))
+    pickle.dump(TRG, open(f'{dst}/TRG.pkl', 'wb'))
+    saved_once = 1
+    print("weights and field pickles saved to " + dst)
 
-def yesno(response):
-    while True:
-        if response != 'y' and response != 'n':
-            response = input('command not recognised, enter y or n : ')
-        else:
-            return response
 
-def promptNextAction(model, opt, SRC, TRG):
-
-    saved_once = 1 if opt.load_weights is not None or opt.checkpoint > 0 else 0
-    
-    if opt.load_weights is not None:
-        dst = opt.load_weights
-    if opt.checkpoint > 0:
-        dst = 'weights'
-
-    while True:
-        save = yesno(input('training complete, save results? [y/n] : '))
-        if save == 'y':
-            while True:
-                if saved_once != 0:
-                    res = yesno("save to same folder? [y/n] : ")
-                    if res == 'y':
-                        break
-                dst = input('enter folder name to create for weights (no spaces) : ')
-                if ' ' in dst or len(dst) < 1 or len(dst) > 30:
-                    dst = input("name must not contain spaces and be between 1 and 30 characters length, enter again : ")
-                else:
-                    try:
-                        os.mkdir(dst)
-                    except:
-                        res= yesno(input(dst + " already exists, use anyway? [y/n] : "))
-                        if res == 'n':
-                            continue
-                    break
-            
-            print("saving weights to " + dst + "/...")
-            torch.save(model.state_dict(), f'{dst}/model_weights')
-            if saved_once == 0:
-                pickle.dump(SRC, open(f'{dst}/SRC.pkl', 'wb'))
-                pickle.dump(TRG, open(f'{dst}/TRG.pkl', 'wb'))
-                saved_once = 1
-            
-            print("weights and field pickles saved to " + dst)
-
-        res = yesno(input("train for more epochs? [y/n] : "))
-        if res == 'y':
-            while True:
-                epochs = input("type number of epochs to train for : ")
-                try:
-                    epochs = int(epochs)
-                except:
-                    print("input not a number")
-                    continue
-                if epochs < 1:
-                    print("epochs must be at least 1")
-                    continue
-                else:
-                    break
-            opt.epochs = epochs
-            train_model(model, opt)
-        else:
-            print("exiting program...")
-            break
-
-    # for asking about further training use while true loop, and return
 if __name__ == "__main__":
     main()

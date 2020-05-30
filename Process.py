@@ -8,9 +8,10 @@ import dill as pickle
 
 def read_data(opt):
     data = pd.read_csv('data/train_folds.csv')
-
+    print(f'dataset has shape: {data.shape}')
     try:
         opt.src_data = data.loc[data['kfold'] != opt.fold, 'text'].values
+        print(f'training on data that has shape: {opt.src_data.shape}')
     except:
         print("error: loading data")
         quit()
@@ -89,8 +90,6 @@ def create_dataset(opt, SRC, TRG):
     return train_iter
 
 def get_len(train):
-
     for i, b in enumerate(train):
         pass
-    
     return i

@@ -29,7 +29,7 @@ def init_vars(src, model, SRC, TRG, opt):
     outputs[:, 0] = init_tok
     outputs[:, 1] = ix[0]
     
-    e_outputs = torch.zeros(opt.k, e_output.size(-2),e_output.size(-1))
+    e_outputs = torch.zeros(opt.k, e_output.size(-2), e_output.size(-1))
     if opt.device == 0:
         e_outputs = e_outputs.cuda()
     e_outputs[:, :] = e_output[0]
@@ -53,8 +53,6 @@ def k_best_outputs(outputs, out, log_scores, i, k):
     return outputs, log_scores
 
 def beam_search(src, model, SRC, TRG, opt):
-    
-
     outputs, e_outputs, log_scores = init_vars(src, model, SRC, TRG, opt)
     eos_tok = TRG.vocab.stoi['<eos>']
     src_mask = (src != SRC.vocab.stoi['<pad>']).unsqueeze(-2)

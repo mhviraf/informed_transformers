@@ -6,31 +6,31 @@ import numpy as np
 
 from Sublayers import FeedForward, MultiHeadAttention, Norm
 
-def get_one_hot_vectors(input_sequence, y_t):
-  """This function takes in input sequence and target at time step t
-  and returns a one hot vector (named alpha_hat_t_i in Eq. 3 of Song et al. paper)
+# def get_one_hot_vectors(input_sequence, y_t):
+#   """This function takes in input sequence and target at time step t
+#   and returns a one hot vector (named alpha_hat_t_i in Eq. 3 of Song et al. paper)
 
-  Arguments:
-      input_sequence {torch tensor} -- tokens of input sequence
-      y_t {int} -- tokens of target sequence
+#   Arguments:
+#       input_sequence {torch tensor} -- tokens of input sequence
+#       y_t {int} -- tokens of target sequence
 
-  Returns:
-      one_hot_vector {torch tensor}
-  """
+#   Returns:
+#       one_hot_vector {torch tensor}
+#   """
   
-  one_hot_vector = torch.zeros(len(input_sequence), len(y_t), device='cuda')
-  for k, v in dictionary.items():
-      try:
-        one_hot_vector[np.where(input_sequence == k)[0], np.where(y_t == v)[0]] = 1
-      except:
-        pass
+#   one_hot_vector = torch.zeros(len(input_sequence), len(y_t), device='cuda')
+#   for k, v in dictionary.items():
+#       try:
+#         one_hot_vector[np.where(input_sequence == k)[0], np.where(y_t == v)[0]] = 1
+#       except:
+#         pass
 
 #   for j, y in enumerate(y_t):
 #     for i, en_word in enumerate(input_sequence):
 #         if dictionary.get(en_word.item(), None) == y.item():
 #             one_hot_vector[i, j] = 1
 
-  return one_hot_vector
+#   return one_hot_vector
 
 
 class EncoderLayer(nn.Module):
@@ -53,7 +53,7 @@ class EncoderLayer(nn.Module):
 # build a decoder layer with two multi-head attention layers and
 # one feed-forward layer
 class DecoderLayer(nn.Module):
-    def __init__(self, d_model, heads, dropout=0.1, dictionary=None):
+    def __init__(self, d_model, heads, dropout=0.1, model_type=None):
         super().__init__()
         self.norm_1 = Norm(d_model)
         self.norm_2 = Norm(d_model)
@@ -67,7 +67,7 @@ class DecoderLayer(nn.Module):
         self.attn_2 = MultiHeadAttention(heads, d_model, dropout=dropout)
         self.ff = FeedForward(d_model, dropout=dropout)
 
-        self.dictionary = dictionary
+        self.model_type = model_type
 
     def forward(self, x, e_outputs, src_mask, trg_mask):
         # decoder attention block
@@ -75,10 +75,12 @@ class DecoderLayer(nn.Module):
         x = x + self.dropout_1(self.attn_1(x2, x2, x2, trg_mask))
         x2 = self.norm_2(x)
 
-        # # beta's
-        # betas = torch.bmm(e_outputs, torch.transpose(x2, 1, 2)) / torch.sqrt(torch.tensor(x.shape[-1], dtype=torch.float))
-        # # (batch_size, src_seq_len, trg_seq_len)
-        # betas = F.softmax(betas, dim=1) # beta-softmax of one sample
+        if self.model_type == 'inference':
+            # beta's
+            betas = torch.bmm(e_outputs, torch.transpose(x2, 1, 2)) / torch.sqrt(torch.tensor(x.shape[-1], dtype=torch.float))
+            # (batch_size, src_seq_len, trg_seq_len)
+            betas = F.softmax(betas, dim=1) # beta-softmax of one sample
+            print(betas[0, :, -1].flatten()[:-1])
 
         # batch_loss = 0 # holds loss over one batch
         # for i in range(betas.shape[0]): # loop over samples in a batch

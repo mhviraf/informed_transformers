@@ -36,6 +36,7 @@ def translate_sentence(sentence, model, opt, SRC, TRG):
     model.eval()
     indexed = []
     sentence = SRC.preprocess(sentence)
+    print(sentence[:-1])
     for tok in sentence:
         if SRC.vocab.stoi[tok] != 0 or opt.floyd == True:
             indexed.append(SRC.vocab.stoi[tok])
@@ -47,26 +48,24 @@ def translate_sentence(sentence, model, opt, SRC, TRG):
     
     sentence = beam_search(sentence, model, SRC, TRG, opt)
 
-    return  multiple_replace({' ?' : '?',' !':'!',' .':'.','\' ':'\'',' ,':','}, sentence)
+    return  sentence
 
 def translate(opt, model, SRC, TRG):
-    sentences = opt.text.lower().split('.')
-    translated = []
+    sentence = opt.text.lower()
+    translated = translate_sentence(sentence + '.', model, opt, SRC, TRG).capitalize()
 
-    for sentence in sentences:
-        translated.append(translate_sentence(sentence + '.', model, opt, SRC, TRG).capitalize())
-
-    return (' '.join(translated))
+    return (translated)
 
 
 def main():
     
     parser = argparse.ArgumentParser()
+    parser.add_argument('-fold', default=0)
     parser.add_argument('-load_weights', required=True)
     parser.add_argument('-k', type=int, default=1)
     parser.add_argument('-max_len', type=int, default=3)
     parser.add_argument('-d_model', type=int, default=512)
-    parser.add_argument('-n_layers', type=int, default=6)
+    parser.add_argument('-n_layers', type=int, default=1)
     parser.add_argument('-src_lang', default='en')
     parser.add_argument('-trg_lang', default='en')
     parser.add_argument('-heads', type=int, default=1)
@@ -74,7 +73,6 @@ def main():
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-floyd', action='store_true')
     parser.add_argument('-savetokens', type=int, default=0)
-    
     opt = parser.parse_args()
 
     opt.device = 0 if opt.no_cuda is False else -1
@@ -82,21 +80,17 @@ def main():
     assert opt.k > 0
 
     SRC, TRG = create_fields(opt)
-    model = get_model(opt, len(SRC.vocab), len(TRG.vocab))
-    
-    while True:
-        opt.text =input("Enter a sentence to translate (type 'f' to load from file, or 'q' to quit):\n")
-        if opt.text=="q":
-            break
-        if opt.text=='f':
-            fpath =input("Enter a sentence to translate (type 'f' to load from file, or 'q' to quit):\n")
-            try:
-                opt.text = ' '.join(open(opt.text, encoding='utf-8').read().split('\n'))
-            except:
-                print("error opening or reading text file")
-                continue
+    model = get_model(opt, len(SRC.vocab), len(TRG.vocab), model_type='inference')
+
+    data = pd.read_csv('data/train_folds.csv')
+    for ind_ in [10, 100, 50, 75, 69]:
+        fold_data = data.loc[data['kfold'] == opt.fold].iloc[ind_]
+        opt.text = fold_data['text']
+        print(f'original text > {opt.text}')
+        print(f'original selected text > {fold_data["selected_text"]} \nsentiment: {fold_data["sentiment"]}')
         phrase = translate(opt, model, SRC, TRG)
-        print('> '+ phrase + '\n')
+        print('> prediction: '+ phrase + '\n')
+        print('')
 
 if __name__ == '__main__':
     main()

@@ -25,12 +25,12 @@ class Encoder(nn.Module):
         return self.norm(x)
     
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, d_model, N, heads, dropout):
+    def __init__(self, vocab_size, d_model, N, heads, dropout, model_type):
         super().__init__()
         self.N = N
         self.embed = Embedder(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model, dropout=dropout)
-        self.layers = get_clones(DecoderLayer(d_model, heads, dropout), N)
+        self.layers = get_clones(DecoderLayer(d_model, heads, dropout, model_type=model_type), N)
         self.norm = Norm(d_model)
     def forward(self, trg, e_outputs, src_mask, trg_mask):
         x = self.embed(trg)
@@ -40,23 +40,24 @@ class Decoder(nn.Module):
         return self.norm(x)
 
 class Transformer(nn.Module):
-    def __init__(self, src_vocab, trg_vocab, d_model, N, heads, dropout):
+    def __init__(self, src_vocab, trg_vocab, d_model, N, heads, dropout, model_type):
         super().__init__()
         self.encoder = Encoder(src_vocab, d_model, N, heads, dropout)
-        self.decoder = Decoder(trg_vocab, d_model, N, heads, dropout)
+        self.decoder = Decoder(trg_vocab, d_model, N, heads, dropout, model_type=model_type)
         self.out = nn.Linear(d_model, trg_vocab)
+        self.model_type = model_type
     def forward(self, src, trg, src_mask, trg_mask):
         e_outputs = self.encoder(src, src_mask)
-        d_output = self.decoder(trg, e_outputs, src_mask, trg_mask, src_tokens=src, target_token=trg)
+        d_output = self.decoder(trg, e_outputs, src_mask, trg_mask)
         output = self.out(d_output)
         return output
 
-def get_model(opt, src_vocab, trg_vocab):
+def get_model(opt, src_vocab, trg_vocab, model_type):
 
     assert opt.d_model % opt.heads == 0
     assert opt.dropout < 1
 
-    model = Transformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout)
+    model = Transformer(src_vocab, trg_vocab, opt.d_model, opt.n_layers, opt.heads, opt.dropout, model_type=model_type)
     if opt.load_weights is not None:
         print("loading pretrained weights...")
         model.load_state_dict(torch.load(f'{opt.load_weights}/model_weights'))
