@@ -83,7 +83,7 @@ def main():
     model = get_model(opt, len(SRC.vocab), len(TRG.vocab), model_type='inference')
 
     data = pd.read_csv('data/train_folds.csv')
-    for ind_ in [10, 100, 50, 75, 69]:
+    for ind_ in [13, 11, 15, ]:
         fold_data = data.loc[data['kfold'] == opt.fold].iloc[ind_]
         opt.text = fold_data['text']
         print(f'original text > {opt.text}')
